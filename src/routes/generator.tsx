@@ -724,6 +724,57 @@ function ContentFields({
           </Field>
         </div>
       );
+    case "multilink": {
+      const setLinks = (links: { label: string; url: string }[]) =>
+        upd("multilink", { ...fields.multilink, links });
+      return (
+        <div className="mt-2 space-y-3">
+          <Field label="Title">
+            <Input
+              value={fields.multilink.title}
+              onChange={(e) => upd("multilink", { ...fields.multilink, title: e.target.value })}
+              placeholder="My Links"
+            />
+          </Field>
+          <div className="space-y-2">
+            {fields.multilink.links.map((l, i) => (
+              <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
+                <Input
+                  placeholder="Label"
+                  value={l.label}
+                  onChange={(e) =>
+                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)))
+                  }
+                />
+                <Input
+                  placeholder="https://"
+                  value={l.url}
+                  onChange={(e) =>
+                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, url: e.target.value } : x)))
+                  }
+                />
+                <button
+                  onClick={() => setLinks(fields.multilink.links.filter((_, idx) => idx !== i))}
+                  className="rounded-lg bg-secondary hover:bg-secondary/70 px-2"
+                  aria-label="Remove link"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => setLinks([...fields.multilink.links, { label: "", url: "https://" }])}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add link
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Static Multi-Link encodes all your links as text inside the QR — no hosting needed. For a hosted linktree-style page with editing and scan analytics, use Dynamic → Multi-Link.
+          </p>
+        </div>
+      );
+    }
   }
 }
 
