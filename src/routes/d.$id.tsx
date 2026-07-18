@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getDynamicQr } from "@/lib/dynamic-qr.functions";
 import { Loader2, FileText, Download, ExternalLink, Mail, Phone, Building } from "lucide-react";
 
@@ -32,7 +31,13 @@ function DynamicViewer() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await getDynamicQr({ data: { id } }).catch(() => null);
+      const res = await getDynamicQr({
+        data: {
+          id,
+          referrer: document.referrer || undefined,
+          userAgent: navigator.userAgent || undefined,
+        },
+      }).catch(() => null);
       if (cancelled) return;
       if (!res || !res.ok) {
         setError("This QR link is invalid or has been removed.");
@@ -40,12 +45,6 @@ function DynamicViewer() {
       }
       const data = res.row;
       setRow(data as Row);
-      // Fire-and-forget scan tracking
-      supabase.rpc("record_scan", {
-        _qr_id: data.id,
-        _referrer: document.referrer || undefined,
-        _user_agent: navigator.userAgent || undefined,
-      });
       if (data.file_kind === "link") {
         const target = (data.content as { value?: string } | null)?.value;
         if (target) {
