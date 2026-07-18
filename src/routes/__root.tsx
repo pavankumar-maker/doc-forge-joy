@@ -11,7 +11,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { QrCode, LayoutGrid } from "lucide-react";
+import { QrCode, LayoutGrid, LogOut, LogIn } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Toaster } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 function NotFoundComponent() {
   return (
@@ -120,6 +124,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      router.invalidate();
+      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -129,12 +143,32 @@ function RootComponent() {
           <Outlet />
         </main>
         <SiteFooter />
+        <Toaster theme="dark" position="top-right" richColors />
       </div>
     </QueryClientProvider>
   );
 }
 
 function SiteHeader() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    router.navigate({ to: "/", replace: true });
+  };
+
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/50">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
@@ -149,13 +183,35 @@ function SiteHeader() {
           <a href="/#types" className="hover:text-foreground transition">QR Types</a>
           <Link to="/generator" className="hover:text-foreground transition">Generator</Link>
         </nav>
-        <Link
-          to="/generator"
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 transition"
-        >
-          <LayoutGrid className="w-4 h-4" />
-          Dashboard
-        </Link>
+        <div className="flex items-center gap-2">
+          {signedIn ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 transition"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Dashboard
+              </Link>
+              <button
+                onClick={signOut}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm hover:bg-secondary transition"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 transition"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign in
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
