@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
 import {
@@ -270,10 +273,71 @@ function GeneratorPage() {
               <DlBtn onClick={downloadSvg}>SVG</DlBtn>
               <DlBtn onClick={downloadPdf}>PDF</DlBtn>
             </div>
+            <SaveToDashboard type={type} value={value} fg={fg} bg={bg} ecl={ecl} />
           </Panel>
         </aside>
       </section>
     </>
+  );
+}
+
+function SaveToDashboard({
+  type, value, fg, bg, ecl,
+}: { type: string; value: string; fg: string; bg: string; ecl: "L"|"M"|"Q"|"H" }) {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSignedIn(!!s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const save = async () => {
+    const label = name.trim() || `${type} QR`;
+    if (!value) return toast.error("Fill in the details first");
+    setSaving(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    if (!userRes.user) { setSaving(false); return; }
+    const { error } = await supabase.from("saved_qrs").insert({
+      user_id: userRes.user.id,
+      name: label.slice(0, 80),
+      qr_type: type,
+      content: { value },
+      design: { fg, bg, ecl },
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Saved to dashboard");
+    setName("");
+  };
+
+  if (signedIn === null) return null;
+  if (!signedIn) {
+    return (
+      <div className="mt-4 rounded-xl border border-border/60 bg-secondary/30 p-4 text-sm text-muted-foreground">
+        <Link to="/auth" className="text-primary hover:underline font-medium">Sign in</Link> to save this QR to your dashboard.
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 space-y-2">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={80}
+        placeholder="Name (e.g. My website)"
+        className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm focus:outline-none focus:border-primary/60"
+      />
+      <button
+        onClick={save}
+        disabled={saving}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-secondary hover:bg-secondary/80 px-4 py-2.5 text-sm font-medium transition disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save to dashboard"}
+      </button>
+    </div>
   );
 }
 
