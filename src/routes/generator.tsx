@@ -52,6 +52,24 @@ export const Route = createFileRoute("/generator")({
   component: GeneratorPage,
 });
 
+// Canonical public origin for share links encoded into QR codes.
+// In the editor/preview iframe, window.location.origin is an ephemeral
+// preview host (id-preview--*.lovable.app / *.lovableproject.com) that
+// isn't reachable from a phone scan. Fall back to the published site.
+const PUBLISHED_ORIGIN = "https://doc-forge-joy.lovable.app";
+function getShareOrigin(): string {
+  if (typeof window === "undefined") return PUBLISHED_ORIGIN;
+  const host = window.location.hostname;
+  if (
+    host === "localhost" ||
+    host.endsWith("lovableproject.com") ||
+    host.includes("id-preview--")
+  ) {
+    return PUBLISHED_ORIGIN;
+  }
+  return window.location.origin;
+}
+
 type QRType =
   | "website"
   | "text"
