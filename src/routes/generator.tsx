@@ -29,7 +29,11 @@ export const Route = createFileRoute("/generator")({
         content:
           "Create fully customized static or dynamic QR codes. Pick a type, fill the details, design it, and download in PNG, SVG or PDF.",
       },
+      { property: "og:title", content: "QR Generator — UniQR" },
+      { property: "og:description", content: "Design custom QR codes for websites, WiFi, UPI, vCards and WhatsApp with a live preview, custom colors and PNG, SVG and PDF exports." },
+      { property: "og:url", content: "https://doc-forge-joy.lovable.app/generator" },
     ],
+    links: [{ rel: "canonical", href: "https://doc-forge-joy.lovable.app/generator" }],
   }),
   component: GeneratorPage,
 });
