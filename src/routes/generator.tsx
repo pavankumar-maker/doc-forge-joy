@@ -100,7 +100,7 @@ interface Fields {
   maps: { query: string };
   upi: { vpa: string; name: string; amount: string };
   wifi: { ssid: string; password: string; encryption: "WPA" | "WEP" | "nopass" };
-  multilink: { title: string; links: { label: string; url: string }[] };
+  multilink: { title: string; links: MLLink[] };
   facebook: string;
   instagram: string;
   image: string;
@@ -122,8 +122,8 @@ const DEFAULTS: Fields = {
   multilink: {
     title: "My Links",
     links: [
-      { label: "Website", url: "https://uniqr.app" },
-      { label: "Twitter", url: "https://twitter.com/uniqr" },
+      { type: "website", label: "Website", value: "https://uniqr.app", extra: "" },
+      { type: "instagram", label: "Instagram", value: "uniqr", extra: "" },
     ],
   },
   facebook: "uniqr",
@@ -138,6 +138,48 @@ function socialUrl(base: string, v: string) {
   if (!t) return base;
   if (/^https?:\/\//i.test(t)) return t;
   return `${base}/${t.replace(/^@/, "")}`;
+}
+
+// ============ Multi-Link per-link types ============
+export type MLLink = {
+  type: string;
+  label: string;
+  value: string;
+  extra?: string;
+};
+
+type MLKind = {
+  id: string;
+  label: string;
+  icon: any;
+  placeholder: string;
+  extraPlaceholder?: string;
+  build: (value: string, extra?: string) => string;
+};
+
+const ML_KINDS: MLKind[] = [
+  { id: "website", label: "Website", icon: Globe, placeholder: "https://example.com", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://${v.trim()}`) },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, placeholder: "15551234567 (with country code)", extraPlaceholder: "Prefilled message (optional)", build: (v, x) => `https://wa.me/${v.replace(/\D/g, "")}${x?.trim() ? `?text=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "phone", label: "Phone", icon: Phone, placeholder: "+15551234567", build: (v) => `tel:${v.trim()}` },
+  { id: "email", label: "Email", icon: Mail, placeholder: "hello@example.com", extraPlaceholder: "Subject (optional)", build: (v, x) => `mailto:${v.trim()}${x?.trim() ? `?subject=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "sms", label: "SMS", icon: MessageSquare, placeholder: "+15551234567", extraPlaceholder: "Message (optional)", build: (v, x) => `sms:${v.trim()}${x?.trim() ? `?body=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "instagram", label: "Instagram", icon: Camera, placeholder: "username", build: (v) => socialUrl("https://instagram.com", v) },
+  { id: "facebook", label: "Facebook", icon: Share2, placeholder: "username or page", build: (v) => socialUrl("https://facebook.com", v) },
+  { id: "twitter", label: "X / Twitter", icon: Share2, placeholder: "username", build: (v) => socialUrl("https://x.com", v) },
+  { id: "youtube", label: "YouTube", icon: Video, placeholder: "https://youtube.com/@channel", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://youtube.com/${v.trim().replace(/^@?/, "@")}`) },
+  { id: "linkedin", label: "LinkedIn", icon: User, placeholder: "https://linkedin.com/in/username", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://linkedin.com/in/${v.trim()}`) },
+  { id: "tiktok", label: "TikTok", icon: Video, placeholder: "username", build: (v) => socialUrl("https://tiktok.com/@", v.replace(/^@/, "")) },
+  { id: "maps", label: "Maps", icon: MapPin, placeholder: "Address or place name", build: (v) => `https://maps.google.com/?q=${encodeURIComponent(v.trim())}` },
+  { id: "upi", label: "UPI Pay", icon: CreditCard, placeholder: "vpa@bank", extraPlaceholder: "Amount (optional)", build: (v, x) => `upi://pay?pa=${v.trim()}${x?.trim() ? `&am=${x.trim()}` : ""}&cu=INR` },
+  { id: "custom", label: "Custom URL", icon: Link2, placeholder: "https://…", build: (v) => v.trim() },
+];
+
+function mlKind(id: string) {
+  return ML_KINDS.find((k) => k.id === id) || ML_KINDS[0];
+}
+
+function buildMLUrl(l: MLLink): string {
+  return mlKind(l.type).build(l.value || "", l.extra || "");
 }
 
 function buildValue(type: QRType, f: Fields): string {
@@ -164,7 +206,8 @@ function buildValue(type: QRType, f: Fields): string {
       return `WIFI:T:${f.wifi.encryption};S:${f.wifi.ssid};P:${f.wifi.password};;`;
     case "multilink": {
       const lines = f.multilink.links
-        .filter((l) => l.url.trim())
+        .map((l) => ({ ...l, url: buildMLUrl(l) }))
+        .filter((l) => l.url.trim() && !/^https?:\/\/$/i.test(l.url.trim()))
         .map((l) => (l.label.trim() ? `${l.label}: ${l.url}` : l.url));
       return [f.multilink.title.trim(), ...lines].filter(Boolean).join("\n");
     }
@@ -775,7 +818,7 @@ function ContentFields({
         </div>
       );
     case "multilink": {
-      const setLinks = (links: { label: string; url: string }[]) =>
+      const setLinks = (links: MLLink[]) =>
         upd("multilink", { ...fields.multilink, links });
       return (
         <div className="mt-2 space-y-3">
@@ -786,39 +829,7 @@ function ContentFields({
               placeholder="My Links"
             />
           </Field>
-          <div className="space-y-2">
-            {fields.multilink.links.map((l, i) => (
-              <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
-                <Input
-                  placeholder="Label"
-                  value={l.label}
-                  onChange={(e) =>
-                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)))
-                  }
-                />
-                <Input
-                  placeholder="https://"
-                  value={l.url}
-                  onChange={(e) =>
-                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, url: e.target.value } : x)))
-                  }
-                />
-                <button
-                  onClick={() => setLinks(fields.multilink.links.filter((_, idx) => idx !== i))}
-                  className="rounded-lg bg-secondary hover:bg-secondary/70 px-2"
-                  aria-label="Remove link"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => setLinks([...fields.multilink.links, { label: "", url: "https://" }])}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs"
-            >
-              <Plus className="w-3.5 h-3.5" /> Add link
-            </button>
-          </div>
+          <MultiLinkEditor links={fields.multilink.links} onChange={setLinks} />
           <p className="text-xs text-muted-foreground">
             Static Multi-Link encodes all your links as text inside the QR — no hosting needed. For a hosted linktree-style page with editing and scan analytics, use Dynamic → Multi-Link.
           </p>
@@ -908,16 +919,15 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
   const signedIn = useSignedIn();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [links, setLinks] = useState<{ label: string; url: string }[]>([
-    { label: "Website", url: "https://" },
+  const [links, setLinks] = useState<MLLink[]>([
+    { type: "website", label: "Website", value: "https://", extra: "" },
   ]);
   const [saving, setSaving] = useState(false);
 
-  const updateLink = (i: number, patch: Partial<{ label: string; url: string }>) =>
-    setLinks((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
-
   const save = async () => {
-    const clean = links.filter((l) => l.label.trim() && l.url.trim());
+    const clean = links
+      .map((l) => ({ label: (l.label || mlKind(l.type).label).trim(), url: buildMLUrl(l), type: l.type }))
+      .filter((l) => l.label && l.url && !/^https?:\/\/$/i.test(l.url));
     if (clean.length === 0) return toast.error("Add at least one link");
     setSaving(true);
     const { data: userRes } = await supabase.auth.getUser();
@@ -947,30 +957,81 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
         className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
       <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} placeholder="Short bio (optional)"
         className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-      <div className="space-y-2">
-        {links.map((l, i) => (
-          <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
-            <input value={l.label} onChange={(e) => updateLink(i, { label: e.target.value })} placeholder="Label"
-              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-            <input value={l.url} onChange={(e) => updateLink(i, { url: e.target.value })} placeholder="https://"
-              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-            <button onClick={() => setLinks((ls) => ls.filter((_, x) => x !== i))}
-              className="rounded-lg bg-secondary hover:bg-secondary/70 px-2">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-        <button onClick={() => setLinks((ls) => [...ls, { label: "", url: "https://" }])}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs">
-          <Plus className="w-3.5 h-3.5" /> Add link
-        </button>
-      </div>
+      <MultiLinkEditor links={links} onChange={setLinks} />
       <button onClick={save} disabled={saving}
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 px-4 py-2.5 text-sm font-medium disabled:opacity-50">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
         {saving ? "Saving…" : "Create Multi-Link QR"}
       </button>
       <ShareLink url={dynamicUrl} />
+    </div>
+  );
+}
+
+function MultiLinkEditor({ links, onChange }: { links: MLLink[]; onChange: (l: MLLink[]) => void }) {
+  const update = (i: number, patch: Partial<MLLink>) =>
+    onChange(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const remove = (i: number) => onChange(links.filter((_, idx) => idx !== i));
+  const add = () => onChange([...links, { type: "website", label: "", value: "", extra: "" }]);
+
+  return (
+    <div className="space-y-3">
+      {links.map((l, i) => {
+        const k = mlKind(l.type);
+        const preview = buildMLUrl(l);
+        return (
+          <div key={i} className="rounded-xl border border-border/60 bg-secondary/30 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={l.type}
+                onChange={(e) => {
+                  const nk = mlKind(e.target.value);
+                  update(i, { type: e.target.value, label: l.label || nk.label });
+                }}
+                className="rounded-lg bg-input border border-border/60 px-2 py-2 text-sm"
+              >
+                {ML_KINDS.map((k) => (
+                  <option key={k.id} value={k.id}>{k.label}</option>
+                ))}
+              </select>
+              <input
+                value={l.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder={`Label (e.g. ${k.label})`}
+                className="flex-1 rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+              />
+              <button onClick={() => remove(i)} className="rounded-lg bg-secondary hover:bg-secondary/70 px-2 py-2" aria-label="Remove link">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <input
+              value={l.value}
+              onChange={(e) => update(i, { value: e.target.value })}
+              placeholder={k.placeholder}
+              className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+            />
+            {k.extraPlaceholder && (
+              <input
+                value={l.extra || ""}
+                onChange={(e) => update(i, { extra: e.target.value })}
+                placeholder={k.extraPlaceholder}
+                className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+              />
+            )}
+            {l.value.trim() && (
+              <p className="text-[11px] text-muted-foreground truncate">
+                → <span className="text-foreground/80">{preview}</span>
+              </p>
+            )}
+          </div>
+        );
+      })}
+      <button
+        onClick={add}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs"
+      >
+        <Plus className="w-3.5 h-3.5" /> Add link
+      </button>
     </div>
   );
 }
