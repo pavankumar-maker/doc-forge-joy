@@ -30,6 +30,8 @@ import {
   User,
   Plus,
   Trash2,
+  Facebook,
+  Instagram,
 } from "lucide-react";
 
 export const Route = createFileRoute("/generator")({
@@ -61,13 +63,20 @@ type QRType =
   | "maps"
   | "upi"
   | "wifi"
-  | "multilink";
+  | "multilink"
+  | "facebook"
+  | "instagram"
+  | "image"
+  | "video"
+  | "pdf";
 
 const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "website", label: "Website", icon: Globe },
   { key: "text", label: "Text", icon: Type },
   { key: "vcard", label: "vCard", icon: Contact },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { key: "facebook", label: "Facebook", icon: Facebook },
+  { key: "instagram", label: "Instagram", icon: Instagram },
   { key: "phone", label: "Phone", icon: Phone },
   { key: "email", label: "Email", icon: Mail },
   { key: "sms", label: "SMS", icon: MessageSquare },
@@ -75,6 +84,9 @@ const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className
   { key: "upi", label: "UPI", icon: CreditCard },
   { key: "wifi", label: "WiFi", icon: Wifi },
   { key: "multilink", label: "Multi-Link", icon: Link2 },
+  { key: "image", label: "Image", icon: ImageIcon },
+  { key: "video", label: "Video", icon: Video },
+  { key: "pdf", label: "PDF", icon: FileText },
 ];
 
 interface Fields {
@@ -89,6 +101,11 @@ interface Fields {
   upi: { vpa: string; name: string; amount: string };
   wifi: { ssid: string; password: string; encryption: "WPA" | "WEP" | "nopass" };
   multilink: { title: string; links: { label: string; url: string }[] };
+  facebook: string;
+  instagram: string;
+  image: string;
+  video: string;
+  pdf: string;
 }
 
 const DEFAULTS: Fields = {
@@ -109,7 +126,19 @@ const DEFAULTS: Fields = {
       { label: "Twitter", url: "https://twitter.com/uniqr" },
     ],
   },
+  facebook: "uniqr",
+  instagram: "uniqr",
+  image: "https://example.com/photo.jpg",
+  video: "https://example.com/clip.mp4",
+  pdf: "https://example.com/document.pdf",
 };
+
+function socialUrl(base: string, v: string) {
+  const t = v.trim();
+  if (!t) return base;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `${base}/${t.replace(/^@/, "")}`;
+}
 
 function buildValue(type: QRType, f: Fields): string {
   switch (type) {
@@ -139,6 +168,16 @@ function buildValue(type: QRType, f: Fields): string {
         .map((l) => (l.label.trim() ? `${l.label}: ${l.url}` : l.url));
       return [f.multilink.title.trim(), ...lines].filter(Boolean).join("\n");
     }
+    case "facebook":
+      return socialUrl("https://facebook.com", f.facebook);
+    case "instagram":
+      return socialUrl("https://instagram.com", f.instagram);
+    case "image":
+      return f.image;
+    case "video":
+      return f.video;
+    case "pdf":
+      return f.pdf;
   }
 }
 
