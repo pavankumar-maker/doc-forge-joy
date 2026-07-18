@@ -16,7 +16,7 @@ export const Route = createFileRoute("/d/$id")({
 interface Row {
   id: string;
   name: string;
-  file_kind: "image" | "video" | "pdf" | "file" | "multilink" | "vcard";
+  file_kind: "image" | "video" | "pdf" | "file" | "multilink" | "vcard" | "link";
   file_path: string | null;
   mime_type: string | null;
   content: Record<string, unknown> | null;
@@ -48,6 +48,13 @@ function DynamicViewer() {
         _referrer: document.referrer || undefined,
         _user_agent: navigator.userAgent || undefined,
       });
+      if (data.file_kind === "link") {
+        const target = (data.content as { value?: string } | null)?.value;
+        if (target) {
+          window.location.replace(target);
+          return;
+        }
+      }
       if (data.file_path) {
         const { data: signed } = await supabase.storage
           .from("dynamic-qr")
