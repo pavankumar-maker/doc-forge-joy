@@ -24,11 +24,6 @@ export const getDynamicQr = createServerFn({ method: "GET" })
         .createSignedUrl(row.file_path, 60 * 60);
       signedUrl = signed?.signedUrl ?? null;
     }
-    await supabaseAdmin.from("scan_events").insert({
-      qr_id: row.id,
-      referrer: data.referrer ?? "",
-      user_agent: data.userAgent ?? "",
-    });
     await supabaseAdmin.rpc("record_scan", {
       _qr_id: row.id,
       _referrer: data.referrer ?? "",
