@@ -45,8 +45,8 @@ function DynamicViewer() {
       // Fire-and-forget scan tracking
       supabase.rpc("record_scan", {
         _qr_id: data.id,
-        _referrer: document.referrer || null,
-        _user_agent: navigator.userAgent || null,
+        _referrer: document.referrer || undefined,
+        _user_agent: navigator.userAgent || undefined,
       });
       if (data.file_path) {
         const { data: signed } = await supabase.storage
