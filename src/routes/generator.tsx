@@ -192,7 +192,7 @@ function GeneratorPage() {
   const [pngUrl, setPngUrl] = useState("");
   const [svgString, setSvgString] = useState("");
   const [dynamicUrl, setDynamicUrl] = useState<string>("");
-  const [dynamicKind, setDynamicKind] = useState<"file" | "multilink" | "vcard">("file");
+  const [dynamicKind, setDynamicKind] = useState<"file" | "multilink" | "vcard" | "link">("link");
 
   const staticValue = useMemo(() => buildValue(type, fields), [type, fields]);
   const value = mode === "dynamic" ? dynamicUrl || "https://uniqr.app" : staticValue;
@@ -303,6 +303,7 @@ function GeneratorPage() {
               <Label>Dynamic Content</Label>
               <div className="inline-flex rounded-xl bg-secondary p-1 mb-4 flex-wrap gap-1">
                 {([
+                  { k: "link", label: "Link / Redirect", icon: Zap },
                   { k: "file", label: "File", icon: Upload },
                   { k: "multilink", label: "Multi-Link", icon: Link2 },
                   { k: "vcard", label: "Business Card", icon: User },
@@ -319,6 +320,16 @@ function GeneratorPage() {
                   </button>
                 ))}
               </div>
+              {dynamicKind === "link" && (
+                <LinkRedirectForm
+                  type={type}
+                  setType={setType}
+                  fields={fields}
+                  setFields={setFields}
+                  onCreated={setDynamicUrl}
+                  dynamicUrl={dynamicUrl}
+                />
+              )}
               {dynamicKind === "file" && <DynamicUploader onUploaded={setDynamicUrl} dynamicUrl={dynamicUrl} />}
               {dynamicKind === "multilink" && <MultiLinkForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
               {dynamicKind === "vcard" && <VCardForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
