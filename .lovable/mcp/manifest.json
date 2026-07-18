@@ -1,0 +1,320 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fxgtddbtqesezrxtxqgl.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "uniqr-mcp",
+      "version": "0.1.0",
+      "title": "UniQR"
+    },
+    "tools": [
+      {
+        "name": "list_static_qrs",
+        "title": "List static QR codes",
+        "description": "List the signed-in user's saved static QR codes (website, text, vCard, WhatsApp, phone, email, SMS, maps, UPI, WiFi, multi-link).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 50,
+              "description": "Max rows to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_static_qr",
+        "title": "Save a static QR code",
+        "description": "Create and save a static QR code to the signed-in user's dashboard. `value` is the exact string to encode (URL, WIFI: string, BEGIN:VCARD block, etc).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "qr_type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Type label, e.g. website, text, vcard, wifi, upi, multilink."
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The exact payload to encode."
+            },
+            "foreground": {
+              "default": "#0b0b12",
+              "type": "string"
+            },
+            "background": {
+              "default": "#ffffff",
+              "type": "string"
+            },
+            "error_correction": {
+              "default": "H",
+              "type": "string",
+              "enum": [
+                "L",
+                "M",
+                "Q",
+                "H"
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "qr_type",
+            "value"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_dynamic_qrs",
+        "title": "List dynamic QR codes",
+        "description": "List the signed-in user's dynamic QR codes (file uploads, Multi-Link pages, Digital Business Cards) with total scan counts and public /d/:id share URLs.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_multilink_qr",
+        "title": "Create Multi-Link dynamic QR",
+        "description": "Create a hosted Multi-Link (linktree-style) dynamic QR. Returns the public /d/:id URL that the QR encodes.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "bio": {
+              "default": "",
+              "type": "string",
+              "maxLength": 500
+            },
+            "links": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "label",
+                  "url"
+                ]
+              }
+            }
+          },
+          "required": [
+            "name",
+            "links"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_vcard_qr",
+        "title": "Create Digital Business Card QR",
+        "description": "Create a hosted Digital Business Card dynamic QR. Returns the public /d/:id URL that the QR encodes.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "fullName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "title": {
+              "default": "",
+              "type": "string",
+              "maxLength": 120
+            },
+            "org": {
+              "default": "",
+              "type": "string",
+              "maxLength": 120
+            },
+            "phone": {
+              "default": "",
+              "type": "string",
+              "maxLength": 40
+            },
+            "email": {
+              "default": "",
+              "type": "string",
+              "maxLength": 120
+            },
+            "website": {
+              "default": "",
+              "type": "string",
+              "maxLength": 240
+            },
+            "address": {
+              "default": "",
+              "type": "string",
+              "maxLength": 240
+            },
+            "bio": {
+              "default": "",
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "fullName"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_scan_stats",
+        "title": "Get scan analytics for a dynamic QR",
+        "description": "Return recent scan events and total scan count for one dynamic QR the user owns.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "qr_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "limit": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "qr_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "delete_qr",
+        "title": "Delete a QR code",
+        "description": "Delete a QR the signed-in user owns. Set `kind` to \"static\" for saved static QRs or \"dynamic\" for dynamic QRs.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "static",
+                "dynamic"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_profile",
+        "title": "Get my profile",
+        "description": "Return the signed-in UniQR user's profile (display name, avatar).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
