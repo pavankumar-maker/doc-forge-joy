@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 export const getDynamicQr = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
+  .inputValidator((data) =>
+    z.object({
+      id: z.string().uuid(),
+      referrer: z.string().max(500).optional(),
+      userAgent: z.string().max(500).optional(),
+    }).parse(data)
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
@@ -18,6 +24,11 @@ export const getDynamicQr = createServerFn({ method: "GET" })
         .createSignedUrl(row.file_path, 60 * 60);
       signedUrl = signed?.signedUrl ?? null;
     }
+    await supabaseAdmin.rpc("record_scan", {
+      _qr_id: row.id,
+      _referrer: data.referrer ?? "",
+      _user_agent: data.userAgent ?? "",
+    });
     return {
       ok: true as const,
       row: {
