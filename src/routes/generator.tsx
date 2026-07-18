@@ -100,7 +100,7 @@ interface Fields {
   maps: { query: string };
   upi: { vpa: string; name: string; amount: string };
   wifi: { ssid: string; password: string; encryption: "WPA" | "WEP" | "nopass" };
-  multilink: { title: string; links: { label: string; url: string }[] };
+  multilink: { title: string; links: MLLink[] };
   facebook: string;
   instagram: string;
   image: string;
@@ -122,8 +122,8 @@ const DEFAULTS: Fields = {
   multilink: {
     title: "My Links",
     links: [
-      { label: "Website", url: "https://uniqr.app" },
-      { label: "Twitter", url: "https://twitter.com/uniqr" },
+      { type: "website", label: "Website", value: "https://uniqr.app", extra: "" },
+      { type: "instagram", label: "Instagram", value: "uniqr", extra: "" },
     ],
   },
   facebook: "uniqr",
