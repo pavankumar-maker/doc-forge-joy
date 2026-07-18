@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      dynamic_qrs: {
+        Row: {
+          created_at: string
+          file_kind: string
+          file_path: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          name: string
+          scans: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_kind: string
+          file_path: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          scans?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_kind?: string
+          file_path?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          scans?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
