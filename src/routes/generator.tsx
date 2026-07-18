@@ -60,7 +60,8 @@ type QRType =
   | "sms"
   | "maps"
   | "upi"
-  | "wifi";
+  | "wifi"
+  | "multilink";
 
 const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "website", label: "Website", icon: Globe },
@@ -73,6 +74,7 @@ const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className
   { key: "maps", label: "Maps", icon: MapPin },
   { key: "upi", label: "UPI", icon: CreditCard },
   { key: "wifi", label: "WiFi", icon: Wifi },
+  { key: "multilink", label: "Multi-Link", icon: Link2 },
 ];
 
 interface Fields {
@@ -86,6 +88,7 @@ interface Fields {
   maps: { query: string };
   upi: { vpa: string; name: string; amount: string };
   wifi: { ssid: string; password: string; encryption: "WPA" | "WEP" | "nopass" };
+  multilink: { title: string; links: { label: string; url: string }[] };
 }
 
 const DEFAULTS: Fields = {
@@ -99,6 +102,13 @@ const DEFAULTS: Fields = {
   maps: { query: "Golden Gate Bridge" },
   upi: { vpa: "uniqr@bank", name: "UniQR", amount: "100" },
   wifi: { ssid: "UniQR-Guest", password: "supersecret", encryption: "WPA" },
+  multilink: {
+    title: "My Links",
+    links: [
+      { label: "Website", url: "https://uniqr.app" },
+      { label: "Twitter", url: "https://twitter.com/uniqr" },
+    ],
+  },
 };
 
 function buildValue(type: QRType, f: Fields): string {
@@ -123,6 +133,12 @@ function buildValue(type: QRType, f: Fields): string {
       return `upi://pay?pa=${f.upi.vpa}&pn=${encodeURIComponent(f.upi.name)}&am=${f.upi.amount}&cu=INR`;
     case "wifi":
       return `WIFI:T:${f.wifi.encryption};S:${f.wifi.ssid};P:${f.wifi.password};;`;
+    case "multilink": {
+      const lines = f.multilink.links
+        .filter((l) => l.url.trim())
+        .map((l) => (l.label.trim() ? `${l.label}: ${l.url}` : l.url));
+      return [f.multilink.title.trim(), ...lines].filter(Boolean).join("\n");
+    }
   }
 }
 
@@ -708,6 +724,57 @@ function ContentFields({
           </Field>
         </div>
       );
+    case "multilink": {
+      const setLinks = (links: { label: string; url: string }[]) =>
+        upd("multilink", { ...fields.multilink, links });
+      return (
+        <div className="mt-2 space-y-3">
+          <Field label="Title">
+            <Input
+              value={fields.multilink.title}
+              onChange={(e) => upd("multilink", { ...fields.multilink, title: e.target.value })}
+              placeholder="My Links"
+            />
+          </Field>
+          <div className="space-y-2">
+            {fields.multilink.links.map((l, i) => (
+              <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
+                <Input
+                  placeholder="Label"
+                  value={l.label}
+                  onChange={(e) =>
+                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)))
+                  }
+                />
+                <Input
+                  placeholder="https://"
+                  value={l.url}
+                  onChange={(e) =>
+                    setLinks(fields.multilink.links.map((x, idx) => (idx === i ? { ...x, url: e.target.value } : x)))
+                  }
+                />
+                <button
+                  onClick={() => setLinks(fields.multilink.links.filter((_, idx) => idx !== i))}
+                  className="rounded-lg bg-secondary hover:bg-secondary/70 px-2"
+                  aria-label="Remove link"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => setLinks([...fields.multilink.links, { label: "", url: "https://" }])}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add link
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Static Multi-Link encodes all your links as text inside the QR — no hosting needed. For a hosted linktree-style page with editing and scan analytics, use Dynamic → Multi-Link.
+          </p>
+        </div>
+      );
+    }
   }
 }
 
