@@ -814,6 +814,36 @@ function ContentFields({
         </div>
       );
     }
+    case "facebook":
+      return (
+        <Field label="Facebook username or profile URL">
+          <Input value={fields.facebook} onChange={(e) => upd("facebook", e.target.value)} placeholder="uniqr or https://facebook.com/uniqr" />
+        </Field>
+      );
+    case "instagram":
+      return (
+        <Field label="Instagram username or profile URL">
+          <Input value={fields.instagram} onChange={(e) => upd("instagram", e.target.value)} placeholder="uniqr or https://instagram.com/uniqr" />
+        </Field>
+      );
+    case "image":
+      return (
+        <Field label="Image URL">
+          <Input value={fields.image} onChange={(e) => upd("image", e.target.value)} placeholder="https://…/photo.jpg" />
+        </Field>
+      );
+    case "video":
+      return (
+        <Field label="Video URL">
+          <Input value={fields.video} onChange={(e) => upd("video", e.target.value)} placeholder="https://…/clip.mp4 or YouTube link" />
+        </Field>
+      );
+    case "pdf":
+      return (
+        <Field label="PDF URL">
+          <Input value={fields.pdf} onChange={(e) => upd("pdf", e.target.value)} placeholder="https://…/document.pdf" />
+        </Field>
+      );
   }
 }
 
