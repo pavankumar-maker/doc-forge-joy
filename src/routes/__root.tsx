@@ -82,9 +82,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Enterprise-grade platform to generate, customize and track static & dynamic QR codes — websites, payments, vCards, WiFi and more." },
       { name: "author", content: "UniQR" },
       { property: "og:title", content: "UniQR — One QR code. Infinite destinations." },
-      { property: "og:description", content: "Generate, customize and track static & dynamic QR codes at scale." },
+      { property: "og:description", content: "Enterprise-grade platform to generate, customize and track static & dynamic QR codes — websites, payments, vCards, WiFi and more." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "UniQR — One QR code. Infinite destinations." },
+      { name: "twitter:description", content: "Enterprise-grade platform to generate, customize and track static & dynamic QR codes — websites, payments, vCards, WiFi and more." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/906aaa2a-4998-4912-ba68-1ee6fe8ef95d/id-preview-9d2279be--e6720110-ea92-43ce-b546-f7cf81680d1e.lovable.app-1784361550744.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/906aaa2a-4998-4912-ba68-1ee6fe8ef95d/id-preview-9d2279be--e6720110-ea92-43ce-b546-f7cf81680d1e.lovable.app-1784361550744.png" },
     ],
     links: [
       {
