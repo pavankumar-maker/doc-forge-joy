@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, FileText, Download } from "lucide-react";
+import { Loader2, FileText, Download, ExternalLink, Mail, Phone, Building } from "lucide-react";
 
 export const Route = createFileRoute("/d/$id")({
   head: () => ({
@@ -16,9 +16,10 @@ export const Route = createFileRoute("/d/$id")({
 interface Row {
   id: string;
   name: string;
-  file_kind: "image" | "video" | "pdf" | "file";
-  file_path: string;
+  file_kind: "image" | "video" | "pdf" | "file" | "multilink" | "vcard";
+  file_path: string | null;
   mime_type: string | null;
+  content: Record<string, unknown> | null;
 }
 
 function DynamicViewer() {
@@ -32,7 +33,7 @@ function DynamicViewer() {
     (async () => {
       const { data, error } = await supabase
         .from("dynamic_qrs")
-        .select("id,name,file_kind,file_path,mime_type")
+        .select("id,name,file_kind,file_path,mime_type,content")
         .eq("id", id)
         .maybeSingle();
       if (cancelled) return;
@@ -41,10 +42,18 @@ function DynamicViewer() {
         return;
       }
       setRow(data as Row);
-      const { data: signed } = await supabase.storage
-        .from("dynamic-qr")
-        .createSignedUrl(data.file_path, 60 * 60);
-      if (!cancelled && signed?.signedUrl) setUrl(signed.signedUrl);
+      // Fire-and-forget scan tracking
+      supabase.rpc("record_scan", {
+        _qr_id: data.id,
+        _referrer: document.referrer || null,
+        _user_agent: navigator.userAgent || null,
+      });
+      if (data.file_path) {
+        const { data: signed } = await supabase.storage
+          .from("dynamic-qr")
+          .createSignedUrl(data.file_path, 60 * 60);
+        if (!cancelled && signed?.signedUrl) setUrl(signed.signedUrl);
+      }
     })();
     return () => {
       cancelled = true;
@@ -60,7 +69,8 @@ function DynamicViewer() {
     );
   }
 
-  if (!row || !url) {
+  const needsFile = row && ["image", "video", "pdf", "file"].includes(row.file_kind);
+  if (!row || (needsFile && !url)) {
     return (
       <section className="mx-auto max-w-3xl px-6 py-24 grid place-items-center text-muted-foreground">
         <Loader2 className="w-6 h-6 animate-spin" />
@@ -90,6 +100,9 @@ function DynamicViewer() {
             </div>
           </div>
         )}
+        {row.file_kind === "multilink" && <MultiLinkView content={row.content} />}
+        {row.file_kind === "vcard" && <VCardView content={row.content} />}
+        {needsFile && (
         <div className="mt-4 flex justify-end">
           <a
             href={url}
@@ -99,7 +112,73 @@ function DynamicViewer() {
             <Download className="w-4 h-4" /> Download
           </a>
         </div>
+        )}
       </div>
     </section>
+  );
+}
+
+function MultiLinkView({ content }: { content: Record<string, unknown> | null }) {
+  const links = (content?.links as { label: string; url: string }[] | undefined) ?? [];
+  const bio = (content?.bio as string | undefined) ?? "";
+  return (
+    <div className="p-4">
+      {bio && <p className="text-center text-muted-foreground mb-6">{bio}</p>}
+      <div className="space-y-3 max-w-md mx-auto">
+        {links.map((l, i) => (
+          <a
+            key={i}
+            href={l.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between rounded-xl bg-gradient-brand text-primary-foreground px-5 py-4 font-medium hover:opacity-90 transition"
+          >
+            <span>{l.label}</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        ))}
+        {links.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground">No links yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VCardView({ content }: { content: Record<string, unknown> | null }) {
+  const c = (content ?? {}) as {
+    fullName?: string; title?: string; org?: string;
+    phone?: string; email?: string; website?: string; address?: string; bio?: string;
+  };
+  const download = () => {
+    const vcf = `BEGIN:VCARD\nVERSION:3.0\nFN:${c.fullName ?? ""}\nORG:${c.org ?? ""}\nTITLE:${c.title ?? ""}\nTEL:${c.phone ?? ""}\nEMAIL:${c.email ?? ""}\nURL:${c.website ?? ""}\nADR:;;${c.address ?? ""}\nNOTE:${c.bio ?? ""}\nEND:VCARD`;
+    const blob = new Blob([vcf], { type: "text/vcard" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(c.fullName || "contact").replace(/\s+/g, "_")}.vcf`;
+    a.click();
+  };
+  return (
+    <div className="p-6 max-w-md mx-auto text-center">
+      <div className="w-20 h-20 rounded-full bg-gradient-brand grid place-items-center text-primary-foreground text-2xl font-bold mx-auto mb-4">
+        {(c.fullName ?? "?").slice(0, 1).toUpperCase()}
+      </div>
+      <h2 className="text-xl font-bold">{c.fullName}</h2>
+      {c.title && <p className="text-muted-foreground">{c.title}</p>}
+      {c.org && (
+        <p className="text-sm text-muted-foreground inline-flex items-center gap-1 justify-center mt-1">
+          <Building className="w-3.5 h-3.5" /> {c.org}
+        </p>
+      )}
+      {c.bio && <p className="mt-4 text-sm">{c.bio}</p>}
+      <div className="mt-6 space-y-2 text-left text-sm">
+        {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2"><Phone className="w-4 h-4 text-primary" />{c.phone}</a>}
+        {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2"><Mail className="w-4 h-4 text-primary" />{c.email}</a>}
+        {c.website && <a href={c.website} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2"><ExternalLink className="w-4 h-4 text-primary" />{c.website}</a>}
+      </div>
+      <button onClick={download} className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground px-5 py-2.5 font-medium">
+        <Download className="w-4 h-4" /> Save contact
+      </button>
+    </div>
   );
 }
