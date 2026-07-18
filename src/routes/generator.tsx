@@ -919,16 +919,15 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
   const signedIn = useSignedIn();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [links, setLinks] = useState<{ label: string; url: string }[]>([
-    { label: "Website", url: "https://" },
+  const [links, setLinks] = useState<MLLink[]>([
+    { type: "website", label: "Website", value: "https://", extra: "" },
   ]);
   const [saving, setSaving] = useState(false);
 
-  const updateLink = (i: number, patch: Partial<{ label: string; url: string }>) =>
-    setLinks((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
-
   const save = async () => {
-    const clean = links.filter((l) => l.label.trim() && l.url.trim());
+    const clean = links
+      .map((l) => ({ label: (l.label || mlKind(l.type).label).trim(), url: buildMLUrl(l), type: l.type }))
+      .filter((l) => l.label && l.url && !/^https?:\/\/$/i.test(l.url));
     if (clean.length === 0) return toast.error("Add at least one link");
     setSaving(true);
     const { data: userRes } = await supabase.auth.getUser();
@@ -958,24 +957,7 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
         className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
       <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} placeholder="Short bio (optional)"
         className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-      <div className="space-y-2">
-        {links.map((l, i) => (
-          <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
-            <input value={l.label} onChange={(e) => updateLink(i, { label: e.target.value })} placeholder="Label"
-              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-            <input value={l.url} onChange={(e) => updateLink(i, { url: e.target.value })} placeholder="https://"
-              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
-            <button onClick={() => setLinks((ls) => ls.filter((_, x) => x !== i))}
-              className="rounded-lg bg-secondary hover:bg-secondary/70 px-2">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-        <button onClick={() => setLinks((ls) => [...ls, { label: "", url: "https://" }])}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs">
-          <Plus className="w-3.5 h-3.5" /> Add link
-        </button>
-      </div>
+      <MultiLinkEditor links={links} onChange={setLinks} />
       <button onClick={save} disabled={saving}
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 px-4 py-2.5 text-sm font-medium disabled:opacity-50">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
