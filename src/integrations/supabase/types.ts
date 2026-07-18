@@ -16,10 +16,11 @@ export type Database = {
     Tables: {
       dynamic_qrs: {
         Row: {
+          content: Json
           created_at: string
           file_kind: string
-          file_path: string
-          file_url: string
+          file_path: string | null
+          file_url: string | null
           id: string
           mime_type: string | null
           name: string
@@ -28,10 +29,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content?: Json
           created_at?: string
           file_kind: string
-          file_path: string
-          file_url: string
+          file_path?: string | null
+          file_url?: string | null
           id?: string
           mime_type?: string | null
           name: string
@@ -40,10 +42,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content?: Json
           created_at?: string
           file_kind?: string
-          file_path?: string
-          file_url?: string
+          file_path?: string | null
+          file_url?: string | null
           id?: string
           mime_type?: string | null
           name?: string
@@ -110,12 +113,47 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_events: {
+        Row: {
+          created_at: string
+          id: string
+          qr_id: string
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          qr_id: string
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          qr_id?: string
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_events_qr_id_fkey"
+            columns: ["qr_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_qrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_scan: {
+        Args: { _qr_id: string; _referrer?: string; _user_agent?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

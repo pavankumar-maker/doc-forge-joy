@@ -26,6 +26,10 @@ import {
   Loader2,
   Copy,
   Check,
+  Link2,
+  User,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/generator")({
@@ -133,6 +137,7 @@ function GeneratorPage() {
   const [pngUrl, setPngUrl] = useState("");
   const [svgString, setSvgString] = useState("");
   const [dynamicUrl, setDynamicUrl] = useState<string>("");
+  const [dynamicKind, setDynamicKind] = useState<"file" | "multilink" | "vcard">("file");
 
   const staticValue = useMemo(() => buildValue(type, fields), [type, fields]);
   const value = mode === "dynamic" ? dynamicUrl || "https://uniqr.app" : staticValue;
@@ -241,7 +246,27 @@ function GeneratorPage() {
           ) : (
             <Panel>
               <Label>Dynamic Content</Label>
-              <DynamicUploader onUploaded={setDynamicUrl} dynamicUrl={dynamicUrl} />
+              <div className="inline-flex rounded-xl bg-secondary p-1 mb-4 flex-wrap gap-1">
+                {([
+                  { k: "file", label: "File", icon: Upload },
+                  { k: "multilink", label: "Multi-Link", icon: Link2 },
+                  { k: "vcard", label: "Business Card", icon: User },
+                ] as const).map((t) => (
+                  <button
+                    key={t.k}
+                    onClick={() => { setDynamicKind(t.k); setDynamicUrl(""); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5 ${
+                      dynamicKind === t.k ? "bg-gradient-brand text-primary-foreground shadow" : "text-muted-foreground"
+                    }`}
+                  >
+                    <t.icon className="w-3.5 h-3.5" />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {dynamicKind === "file" && <DynamicUploader onUploaded={setDynamicUrl} dynamicUrl={dynamicUrl} />}
+              {dynamicKind === "multilink" && <MultiLinkForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
+              {dynamicKind === "vcard" && <VCardForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
             </Panel>
           )}
 
@@ -691,6 +716,169 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <SubLabel>{label}</SubLabel>
       {children}
+    </div>
+  );
+}
+
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSignedIn(!!s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return signedIn;
+}
+
+function SignInPrompt({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-2 rounded-xl border border-border/60 bg-secondary/30 p-4 text-sm text-muted-foreground">
+      <Link to="/auth" className="text-primary hover:underline font-medium">Sign in</Link> {children}
+    </div>
+  );
+}
+
+function ShareLink({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  if (!url) return null;
+  return (
+    <div className="rounded-lg border border-border/60 bg-secondary/40 p-3 text-xs">
+      <div className="flex items-center gap-2">
+        <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate font-mono text-primary hover:underline">{url}</a>
+        <button
+          onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+          className="inline-flex items-center gap-1 rounded-md bg-secondary hover:bg-secondary/70 px-2 py-1"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => void; dynamicUrl: string }) {
+  const signedIn = useSignedIn();
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [links, setLinks] = useState<{ label: string; url: string }[]>([
+    { label: "Website", url: "https://" },
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  const updateLink = (i: number, patch: Partial<{ label: string; url: string }>) =>
+    setLinks((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+
+  const save = async () => {
+    const clean = links.filter((l) => l.label.trim() && l.url.trim());
+    if (clean.length === 0) return toast.error("Add at least one link");
+    setSaving(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const user = userRes.user;
+    if (!user) { setSaving(false); return; }
+    const { data: row, error } = await supabase.from("dynamic_qrs").insert({
+      user_id: user.id,
+      name: (name.trim() || "My Links").slice(0, 80),
+      file_kind: "multilink",
+      content: { bio, links: clean },
+      mime_type: null,
+    }).select("id").single();
+    setSaving(false);
+    if (error || !row) return toast.error(error?.message || "Save failed");
+    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
+    onCreated(shareUrl);
+    toast.success("Multi-Link QR created");
+  };
+
+  if (signedIn === null) return null;
+  if (!signedIn) return <SignInPrompt>to create a Multi-Link QR.</SignInPrompt>;
+
+  return (
+    <div className="space-y-3">
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Title (e.g. My Links)" maxLength={80}
+        className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
+      <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} placeholder="Short bio (optional)"
+        className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
+      <div className="space-y-2">
+        {links.map((l, i) => (
+          <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2">
+            <input value={l.label} onChange={(e) => updateLink(i, { label: e.target.value })} placeholder="Label"
+              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
+            <input value={l.url} onChange={(e) => updateLink(i, { url: e.target.value })} placeholder="https://"
+              className="rounded-lg bg-input border border-border/60 px-3 py-2 text-sm" />
+            <button onClick={() => setLinks((ls) => ls.filter((_, x) => x !== i))}
+              className="rounded-lg bg-secondary hover:bg-secondary/70 px-2">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        <button onClick={() => setLinks((ls) => [...ls, { label: "", url: "https://" }])}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs">
+          <Plus className="w-3.5 h-3.5" /> Add link
+        </button>
+      </div>
+      <button onClick={save} disabled={saving}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 px-4 py-2.5 text-sm font-medium disabled:opacity-50">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+        {saving ? "Saving…" : "Create Multi-Link QR"}
+      </button>
+      <ShareLink url={dynamicUrl} />
+    </div>
+  );
+}
+
+function VCardForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => void; dynamicUrl: string }) {
+  const signedIn = useSignedIn();
+  const [c, setC] = useState({
+    fullName: "", title: "", org: "", phone: "", email: "", website: "", address: "", bio: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k: keyof typeof c) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setC((v) => ({ ...v, [k]: e.target.value }));
+
+  const save = async () => {
+    if (!c.fullName.trim()) return toast.error("Name is required");
+    setSaving(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const user = userRes.user;
+    if (!user) { setSaving(false); return; }
+    const { data: row, error } = await supabase.from("dynamic_qrs").insert({
+      user_id: user.id,
+      name: c.fullName.slice(0, 80),
+      file_kind: "vcard",
+      content: c,
+      mime_type: null,
+    }).select("id").single();
+    setSaving(false);
+    if (error || !row) return toast.error(error?.message || "Save failed");
+    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
+    onCreated(shareUrl);
+    toast.success("Business card QR created");
+  };
+
+  if (signedIn === null) return null;
+  if (!signedIn) return <SignInPrompt>to create a Digital Business Card QR.</SignInPrompt>;
+
+  return (
+    <div className="space-y-3">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Input placeholder="Full name" value={c.fullName} onChange={set("fullName")} />
+        <Input placeholder="Job title" value={c.title} onChange={set("title")} />
+        <Input placeholder="Organization" value={c.org} onChange={set("org")} />
+        <Input placeholder="Phone" value={c.phone} onChange={set("phone")} />
+        <Input placeholder="Email" value={c.email} onChange={set("email")} />
+        <Input placeholder="Website" value={c.website} onChange={set("website")} />
+      </div>
+      <Input placeholder="Address" value={c.address} onChange={set("address")} />
+      <Textarea placeholder="Short bio" rows={2} value={c.bio} onChange={set("bio")} />
+      <button onClick={save} disabled={saving}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 px-4 py-2.5 text-sm font-medium disabled:opacity-50">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <User className="w-4 h-4" />}
+        {saving ? "Saving…" : "Create Business Card QR"}
+      </button>
+      <ShareLink url={dynamicUrl} />
     </div>
   );
 }
