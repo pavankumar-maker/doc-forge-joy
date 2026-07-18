@@ -172,7 +172,7 @@ function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/50">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link to="/" aria-label="UniQR Home" className="flex items-center gap-2 group">
           <span className="grid place-items-center w-9 h-9 rounded-lg bg-gradient-brand shadow-lg shadow-primary/20">
             <QrCode className="w-5 h-5 text-primary-foreground" />
           </span>
@@ -222,7 +222,7 @@ function SiteFooter() {
     <footer className="border-t border-border/50 mt-24">
       <div className="mx-auto max-w-7xl px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <span className="grid place-items-center w-7 h-7 rounded-md bg-gradient-brand">
+          <span aria-hidden="true" className="grid place-items-center w-7 h-7 rounded-md bg-gradient-brand">
             <QrCode className="w-4 h-4 text-primary-foreground" />
           </span>
           <span>© {new Date().getFullYear()} UniQR. All rights reserved.</span>
