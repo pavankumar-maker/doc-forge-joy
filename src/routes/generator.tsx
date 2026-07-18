@@ -1029,3 +1029,95 @@ function VCardForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => void; 
     </div>
   );
 }
+
+function LinkRedirectForm({
+  type,
+  setType,
+  fields,
+  setFields,
+  onCreated,
+  dynamicUrl,
+}: {
+  type: QRType;
+  setType: (t: QRType) => void;
+  fields: Fields;
+  setFields: React.Dispatch<React.SetStateAction<Fields>>;
+  onCreated: (u: string) => void;
+  dynamicUrl: string;
+}) {
+  const signedIn = useSignedIn();
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const target = useMemo(() => buildValue(type, fields), [type, fields]);
+
+  const save = async () => {
+    if (!target.trim()) return toast.error("Fill in the details first");
+    setSaving(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const user = userRes.user;
+    if (!user) { setSaving(false); return; }
+    const { data: row, error } = await supabase.from("dynamic_qrs").insert({
+      user_id: user.id,
+      name: (name.trim() || `${type} QR`).slice(0, 80),
+      file_kind: "link",
+      content: { value: target, qr_type: type },
+      mime_type: null,
+    }).select("id").single();
+    setSaving(false);
+    if (error || !row) return toast.error(error?.message || "Save failed");
+    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
+    onCreated(shareUrl);
+    toast.success("Dynamic link QR created — edit the target anytime");
+  };
+
+  if (signedIn === null) return null;
+  if (!signedIn) return <SignInPrompt>to create a dynamic link QR you can edit anytime.</SignInPrompt>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Pick any content type — the QR encodes a stable /d/:id URL that redirects to your target. Update the target later without reprinting.
+      </p>
+      <div>
+        <SubLabel>Content type</SubLabel>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {TYPES.map((t) => {
+            const active = t.key === type;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setType(t.key)}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 text-[11px] transition ${
+                  active
+                    ? "border-primary/60 bg-primary/10 text-foreground"
+                    : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <t.icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <ContentFields type={type} fields={fields} setFields={setFields} />
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={80}
+        placeholder="Name (optional)"
+        className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+      />
+      <button
+        onClick={save}
+        disabled={saving}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-brand text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+      >
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+        {saving ? "Saving…" : "Create dynamic QR"}
+      </button>
+      <ShareLink url={dynamicUrl} />
+    </div>
+  );
+}
