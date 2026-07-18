@@ -968,6 +968,74 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
   );
 }
 
+function MultiLinkEditor({ links, onChange }: { links: MLLink[]; onChange: (l: MLLink[]) => void }) {
+  const update = (i: number, patch: Partial<MLLink>) =>
+    onChange(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const remove = (i: number) => onChange(links.filter((_, idx) => idx !== i));
+  const add = () => onChange([...links, { type: "website", label: "", value: "", extra: "" }]);
+
+  return (
+    <div className="space-y-3">
+      {links.map((l, i) => {
+        const k = mlKind(l.type);
+        const preview = buildMLUrl(l);
+        return (
+          <div key={i} className="rounded-xl border border-border/60 bg-secondary/30 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={l.type}
+                onChange={(e) => {
+                  const nk = mlKind(e.target.value);
+                  update(i, { type: e.target.value, label: l.label || nk.label });
+                }}
+                className="rounded-lg bg-input border border-border/60 px-2 py-2 text-sm"
+              >
+                {ML_KINDS.map((k) => (
+                  <option key={k.id} value={k.id}>{k.label}</option>
+                ))}
+              </select>
+              <input
+                value={l.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder={`Label (e.g. ${k.label})`}
+                className="flex-1 rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+              />
+              <button onClick={() => remove(i)} className="rounded-lg bg-secondary hover:bg-secondary/70 px-2 py-2" aria-label="Remove link">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <input
+              value={l.value}
+              onChange={(e) => update(i, { value: e.target.value })}
+              placeholder={k.placeholder}
+              className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+            />
+            {k.extraPlaceholder && (
+              <input
+                value={l.extra || ""}
+                onChange={(e) => update(i, { extra: e.target.value })}
+                placeholder={k.extraPlaceholder}
+                className="w-full rounded-lg bg-input border border-border/60 px-3 py-2 text-sm"
+              />
+            )}
+            {l.value.trim() && (
+              <p className="text-[11px] text-muted-foreground truncate">
+                → <span className="text-foreground/80">{preview}</span>
+              </p>
+            )}
+          </div>
+        );
+      })}
+      <button
+        onClick={add}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-secondary hover:bg-secondary/70 px-3 py-1.5 text-xs"
+      >
+        <Plus className="w-3.5 h-3.5" /> Add link
+      </button>
+    </div>
+  );
+}
+
 function VCardForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => void; dynamicUrl: string }) {
   const signedIn = useSignedIn();
   const [c, setC] = useState({
