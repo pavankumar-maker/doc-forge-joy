@@ -5,6 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Trash2, Download, Loader2, Search, Zap, BarChart3, User } from "lucide-react";
 
+// The QR image encodes the public share URL. Inside the editor/preview
+// iframe, window.location.origin is an ephemeral preview host that isn't
+// reachable from a phone scan, so we always fall back to the published
+// origin for preview / localhost / lovableproject hosts.
+const PUBLISHED_ORIGIN = "https://doc-forge-joy.lovable.app";
+function getShareOrigin(): string {
+  if (typeof window === "undefined") return PUBLISHED_ORIGIN;
+  const host = window.location.hostname;
+  if (
+    host === "localhost" ||
+    host.endsWith("lovableproject.com") ||
+    host.includes("id-preview--")
+  ) {
+    return PUBLISHED_ORIGIN;
+  }
+  return window.location.origin;
+}
+
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
@@ -201,7 +219,7 @@ function Stat({ label, value, icon: Icon }: { label: string; value: number; icon
 
 function DynamicCard({ item, onDelete }: { item: DynamicQr; onDelete: () => void }) {
   const [dataUrl, setDataUrl] = useState("");
-  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/d/${item.id}` : "";
+  const shareUrl = `${getShareOrigin()}/d/${item.id}`;
   useEffect(() => {
     if (!shareUrl) return;
     QRCode.toDataURL(shareUrl, { width: 512, margin: 2, errorCorrectionLevel: "H" }).then(setDataUrl);
