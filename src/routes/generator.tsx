@@ -206,7 +206,8 @@ function buildValue(type: QRType, f: Fields): string {
       return `WIFI:T:${f.wifi.encryption};S:${f.wifi.ssid};P:${f.wifi.password};;`;
     case "multilink": {
       const lines = f.multilink.links
-        .filter((l) => l.url.trim())
+        .map((l) => ({ ...l, url: buildMLUrl(l) }))
+        .filter((l) => l.url.trim() && !/^https?:\/\/$/i.test(l.url.trim()))
         .map((l) => (l.label.trim() ? `${l.label}: ${l.url}` : l.url));
       return [f.multilink.title.trim(), ...lines].filter(Boolean).join("\n");
     }
