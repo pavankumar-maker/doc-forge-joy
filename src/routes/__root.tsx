@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { QrCode, LayoutGrid } from "lucide-react";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "UniQR — One QR code. Infinite destinations." },
+      { name: "description", content: "Enterprise-grade platform to generate, customize and track static & dynamic QR codes — websites, payments, vCards, WiFi and more." },
+      { name: "author", content: "UniQR" },
+      { property: "og:title", content: "UniQR — One QR code. Infinite destinations." },
+      { property: "og:description", content: "Generate, customize and track static & dynamic QR codes at scale." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -119,8 +119,59 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <SiteHeader />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <SiteFooter />
+      </div>
     </QueryClientProvider>
+  );
+}
+
+function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/50">
+      <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 group">
+          <span className="grid place-items-center w-9 h-9 rounded-lg bg-gradient-brand shadow-lg shadow-primary/20">
+            <QrCode className="w-5 h-5 text-primary-foreground" />
+          </span>
+          <span className="font-semibold text-lg tracking-tight">UniQR<span className="text-primary">.</span></span>
+        </Link>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+          <a href="/#features" className="hover:text-foreground transition">Features</a>
+          <a href="/#types" className="hover:text-foreground transition">QR Types</a>
+          <Link to="/generator" className="hover:text-foreground transition">Generator</Link>
+        </nav>
+        <Link
+          to="/generator"
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 transition"
+        >
+          <LayoutGrid className="w-4 h-4" />
+          Dashboard
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="border-t border-border/50 mt-24">
+      <div className="mx-auto max-w-7xl px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="grid place-items-center w-7 h-7 rounded-md bg-gradient-brand">
+            <QrCode className="w-4 h-4 text-primary-foreground" />
+          </span>
+          <span>© {new Date().getFullYear()} UniQR. All rights reserved.</span>
+        </div>
+        <div className="flex gap-6">
+          <a href="/#features" className="hover:text-foreground">Features</a>
+          <Link to="/generator" className="hover:text-foreground">Generator</Link>
+        </div>
+      </div>
+    </footer>
   );
 }
