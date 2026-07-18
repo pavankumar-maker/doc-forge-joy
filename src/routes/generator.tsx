@@ -60,7 +60,8 @@ type QRType =
   | "sms"
   | "maps"
   | "upi"
-  | "wifi";
+  | "wifi"
+  | "multilink";
 
 const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "website", label: "Website", icon: Globe },
@@ -73,6 +74,7 @@ const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className
   { key: "maps", label: "Maps", icon: MapPin },
   { key: "upi", label: "UPI", icon: CreditCard },
   { key: "wifi", label: "WiFi", icon: Wifi },
+  { key: "multilink", label: "Multi-Link", icon: Link2 },
 ];
 
 interface Fields {
@@ -86,6 +88,7 @@ interface Fields {
   maps: { query: string };
   upi: { vpa: string; name: string; amount: string };
   wifi: { ssid: string; password: string; encryption: "WPA" | "WEP" | "nopass" };
+  multilink: { title: string; links: { label: string; url: string }[] };
 }
 
 const DEFAULTS: Fields = {
@@ -99,6 +102,13 @@ const DEFAULTS: Fields = {
   maps: { query: "Golden Gate Bridge" },
   upi: { vpa: "uniqr@bank", name: "UniQR", amount: "100" },
   wifi: { ssid: "UniQR-Guest", password: "supersecret", encryption: "WPA" },
+  multilink: {
+    title: "My Links",
+    links: [
+      { label: "Website", url: "https://uniqr.app" },
+      { label: "Twitter", url: "https://twitter.com/uniqr" },
+    ],
+  },
 };
 
 function buildValue(type: QRType, f: Fields): string {
@@ -123,6 +133,12 @@ function buildValue(type: QRType, f: Fields): string {
       return `upi://pay?pa=${f.upi.vpa}&pn=${encodeURIComponent(f.upi.name)}&am=${f.upi.amount}&cu=INR`;
     case "wifi":
       return `WIFI:T:${f.wifi.encryption};S:${f.wifi.ssid};P:${f.wifi.password};;`;
+    case "multilink": {
+      const lines = f.multilink.links
+        .filter((l) => l.url.trim())
+        .map((l) => (l.label.trim() ? `${l.label}: ${l.url}` : l.url));
+      return [f.multilink.title.trim(), ...lines].filter(Boolean).join("\n");
+    }
   }
 }
 
