@@ -52,6 +52,24 @@ export const Route = createFileRoute("/generator")({
   component: GeneratorPage,
 });
 
+// Canonical public origin for share links encoded into QR codes.
+// In the editor/preview iframe, window.location.origin is an ephemeral
+// preview host (id-preview--*.lovable.app / *.lovableproject.com) that
+// isn't reachable from a phone scan. Fall back to the published site.
+const PUBLISHED_ORIGIN = "https://doc-forge-joy.lovable.app";
+function getShareOrigin(): string {
+  if (typeof window === "undefined") return PUBLISHED_ORIGIN;
+  const host = window.location.hostname;
+  if (
+    host === "localhost" ||
+    host.endsWith("lovableproject.com") ||
+    host.includes("id-preview--")
+  ) {
+    return PUBLISHED_ORIGIN;
+  }
+  return window.location.origin;
+}
+
 type QRType =
   | "website"
   | "text"
@@ -503,7 +521,7 @@ function DynamicUploader({
       setUploading(false);
       return toast.error(insErr?.message || "Save failed");
     }
-    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    const shareUrl = `${getShareOrigin()}/d/${row.id}`;
     await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
     onUploaded(shareUrl);
     setUploading(false);
@@ -942,7 +960,7 @@ function MultiLinkForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => vo
     }).select("id").single();
     setSaving(false);
     if (error || !row) return toast.error(error?.message || "Save failed");
-    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    const shareUrl = `${getShareOrigin()}/d/${row.id}`;
     await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
     onCreated(shareUrl);
     toast.success("Multi-Link QR created");
@@ -1060,7 +1078,7 @@ function VCardForm({ onCreated, dynamicUrl }: { onCreated: (u: string) => void; 
     }).select("id").single();
     setSaving(false);
     if (error || !row) return toast.error(error?.message || "Save failed");
-    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    const shareUrl = `${getShareOrigin()}/d/${row.id}`;
     await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
     onCreated(shareUrl);
     toast.success("Business card QR created");
@@ -1126,7 +1144,7 @@ function LinkRedirectForm({
     }).select("id").single();
     setSaving(false);
     if (error || !row) return toast.error(error?.message || "Save failed");
-    const shareUrl = `${window.location.origin}/d/${row.id}`;
+    const shareUrl = `${getShareOrigin()}/d/${row.id}`;
     await supabase.from("dynamic_qrs").update({ file_url: shareUrl }).eq("id", row.id);
     onCreated(shareUrl);
     toast.success("Dynamic link QR created — edit the target anytime");
