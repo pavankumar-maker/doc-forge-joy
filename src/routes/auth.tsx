@@ -14,7 +14,12 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Sign in — UniQR" },
       { name: "description", content: "Sign in or create your UniQR account to save and manage your QR codes." },
+      { property: "og:title", content: "Sign in — UniQR" },
+      { property: "og:description", content: "Sign in or create your UniQR account to save and manage your QR codes." },
+      { property: "og:url", content: "https://doc-forge-joy.lovable.app/auth" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://doc-forge-joy.lovable.app/auth" }],
   }),
   component: AuthPage,
 });

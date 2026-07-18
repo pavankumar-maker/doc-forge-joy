@@ -9,8 +9,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — UniQR" },
-      { name: "description", content: "Your saved QR codes." },
+      { name: "description", content: "Manage every QR code you have saved to UniQR — preview, download as PNG or delete campaigns you no longer need." },
+      { property: "og:title", content: "Dashboard — UniQR" },
+      { property: "og:description", content: "Preview, download and manage all of the QR codes saved to your UniQR account." },
+      { property: "og:url", content: "https://doc-forge-joy.lovable.app/dashboard" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://doc-forge-joy.lovable.app/dashboard" }],
   }),
   component: DashboardPage,
 });

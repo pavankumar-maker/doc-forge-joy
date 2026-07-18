@@ -1,0 +1,8 @@
+# UniQR
+
+> Free web app to generate branded static and dynamic QR codes for URLs, WiFi, UPI payments, vCards, WhatsApp and more, with live preview and PNG, SVG and PDF exports.
+
+## Pages
+
+- [Home](/): Overview, features and supported QR code types.
+- [Generator](/generator): Live QR generator with color, size and error-correction customization.

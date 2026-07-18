@@ -27,11 +27,36 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "UniQR — One QR code. Infinite destinations." },
+      { title: "UniQR — Free dynamic QR code generator for business" },
       {
         name: "description",
         content:
-          "Enterprise-grade platform to generate, customize and track static & dynamic QR codes — websites, payments, vCards, WiFi and more.",
+          "Create branded static and dynamic QR codes for URLs, WiFi, UPI payments, vCards and WhatsApp. Live preview, custom colors, PNG, SVG and PDF exports.",
+      },
+      { property: "og:title", content: "UniQR — Free dynamic QR code generator for business" },
+      { property: "og:description", content: "Design branded QR codes for URLs, WiFi, UPI, vCards and more — with live preview and PNG, SVG and PDF exports." },
+      { property: "og:url", content: "https://doc-forge-joy.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://doc-forge-joy.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "UniQR",
+          url: "https://doc-forge-joy.lovable.app/",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "UniQR",
+          url: "https://doc-forge-joy.lovable.app/",
+          logo: "https://doc-forge-joy.lovable.app/favicon.ico",
+        }),
       },
     ],
   }),
@@ -136,7 +161,13 @@ function Hero() {
             ))}
           </div>
           <div className="aspect-square rounded-2xl bg-white p-6 grid place-items-center">
-            {dataUrl && <img src={dataUrl} alt="QR preview" className="w-full h-full" />}
+            {dataUrl && (
+              <img
+                src={dataUrl}
+                alt={`Sample ${HERO_TABS[tab].key} QR code preview`}
+                className="w-full h-full"
+              />
+            )}
           </div>
           <p className="mt-4 text-xs font-mono text-muted-foreground truncate">{value}</p>
         </div>
