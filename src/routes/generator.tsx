@@ -26,6 +26,10 @@ import {
   Loader2,
   Copy,
   Check,
+  Link2,
+  User,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/generator")({
@@ -133,6 +137,7 @@ function GeneratorPage() {
   const [pngUrl, setPngUrl] = useState("");
   const [svgString, setSvgString] = useState("");
   const [dynamicUrl, setDynamicUrl] = useState<string>("");
+  const [dynamicKind, setDynamicKind] = useState<"file" | "multilink" | "vcard">("file");
 
   const staticValue = useMemo(() => buildValue(type, fields), [type, fields]);
   const value = mode === "dynamic" ? dynamicUrl || "https://uniqr.app" : staticValue;
@@ -241,7 +246,27 @@ function GeneratorPage() {
           ) : (
             <Panel>
               <Label>Dynamic Content</Label>
-              <DynamicUploader onUploaded={setDynamicUrl} dynamicUrl={dynamicUrl} />
+              <div className="inline-flex rounded-xl bg-secondary p-1 mb-4 flex-wrap gap-1">
+                {([
+                  { k: "file", label: "File", icon: Upload },
+                  { k: "multilink", label: "Multi-Link", icon: Link2 },
+                  { k: "vcard", label: "Business Card", icon: User },
+                ] as const).map((t) => (
+                  <button
+                    key={t.k}
+                    onClick={() => { setDynamicKind(t.k); setDynamicUrl(""); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5 ${
+                      dynamicKind === t.k ? "bg-gradient-brand text-primary-foreground shadow" : "text-muted-foreground"
+                    }`}
+                  >
+                    <t.icon className="w-3.5 h-3.5" />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {dynamicKind === "file" && <DynamicUploader onUploaded={setDynamicUrl} dynamicUrl={dynamicUrl} />}
+              {dynamicKind === "multilink" && <MultiLinkForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
+              {dynamicKind === "vcard" && <VCardForm onCreated={setDynamicUrl} dynamicUrl={dynamicUrl} />}
             </Panel>
           )}
 
