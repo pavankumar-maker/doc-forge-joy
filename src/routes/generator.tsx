@@ -140,6 +140,48 @@ function socialUrl(base: string, v: string) {
   return `${base}/${t.replace(/^@/, "")}`;
 }
 
+// ============ Multi-Link per-link types ============
+export type MLLink = {
+  type: string;
+  label: string;
+  value: string;
+  extra?: string;
+};
+
+type MLKind = {
+  id: string;
+  label: string;
+  icon: any;
+  placeholder: string;
+  extraPlaceholder?: string;
+  build: (value: string, extra?: string) => string;
+};
+
+const ML_KINDS: MLKind[] = [
+  { id: "website", label: "Website", icon: Globe, placeholder: "https://example.com", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://${v.trim()}`) },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, placeholder: "15551234567 (with country code)", extraPlaceholder: "Prefilled message (optional)", build: (v, x) => `https://wa.me/${v.replace(/\D/g, "")}${x?.trim() ? `?text=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "phone", label: "Phone", icon: Phone, placeholder: "+15551234567", build: (v) => `tel:${v.trim()}` },
+  { id: "email", label: "Email", icon: Mail, placeholder: "hello@example.com", extraPlaceholder: "Subject (optional)", build: (v, x) => `mailto:${v.trim()}${x?.trim() ? `?subject=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "sms", label: "SMS", icon: MessageSquare, placeholder: "+15551234567", extraPlaceholder: "Message (optional)", build: (v, x) => `sms:${v.trim()}${x?.trim() ? `?body=${encodeURIComponent(x.trim())}` : ""}` },
+  { id: "instagram", label: "Instagram", icon: Camera, placeholder: "username", build: (v) => socialUrl("https://instagram.com", v) },
+  { id: "facebook", label: "Facebook", icon: Share2, placeholder: "username or page", build: (v) => socialUrl("https://facebook.com", v) },
+  { id: "twitter", label: "X / Twitter", icon: Share2, placeholder: "username", build: (v) => socialUrl("https://x.com", v) },
+  { id: "youtube", label: "YouTube", icon: Video, placeholder: "https://youtube.com/@channel", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://youtube.com/${v.trim().replace(/^@?/, "@")}`) },
+  { id: "linkedin", label: "LinkedIn", icon: User, placeholder: "https://linkedin.com/in/username", build: (v) => (/^https?:\/\//i.test(v.trim()) ? v.trim() : `https://linkedin.com/in/${v.trim()}`) },
+  { id: "tiktok", label: "TikTok", icon: Video, placeholder: "username", build: (v) => socialUrl("https://tiktok.com/@", v.replace(/^@/, "")) },
+  { id: "maps", label: "Maps", icon: MapPin, placeholder: "Address or place name", build: (v) => `https://maps.google.com/?q=${encodeURIComponent(v.trim())}` },
+  { id: "upi", label: "UPI Pay", icon: CreditCard, placeholder: "vpa@bank", extraPlaceholder: "Amount (optional)", build: (v, x) => `upi://pay?pa=${v.trim()}${x?.trim() ? `&am=${x.trim()}` : ""}&cu=INR` },
+  { id: "custom", label: "Custom URL", icon: Link2, placeholder: "https://…", build: (v) => v.trim() },
+];
+
+function mlKind(id: string) {
+  return ML_KINDS.find((k) => k.id === id) || ML_KINDS[0];
+}
+
+function buildMLUrl(l: MLLink): string {
+  return mlKind(l.type).build(l.value || "", l.extra || "");
+}
+
 function buildValue(type: QRType, f: Fields): string {
   switch (type) {
     case "website":
