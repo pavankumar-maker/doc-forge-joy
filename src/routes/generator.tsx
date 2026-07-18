@@ -30,8 +30,8 @@ import {
   User,
   Plus,
   Trash2,
-  Facebook,
-  Instagram,
+  Share2,
+  Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/generator")({
@@ -75,8 +75,8 @@ const TYPES: { key: QRType; label: string; icon: React.ComponentType<{ className
   { key: "text", label: "Text", icon: Type },
   { key: "vcard", label: "vCard", icon: Contact },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
-  { key: "facebook", label: "Facebook", icon: Facebook },
-  { key: "instagram", label: "Instagram", icon: Instagram },
+  { key: "facebook", label: "Facebook", icon: Share2 },
+  { key: "instagram", label: "Instagram", icon: Camera },
   { key: "phone", label: "Phone", icon: Phone },
   { key: "email", label: "Email", icon: Mail },
   { key: "sms", label: "SMS", icon: MessageSquare },
